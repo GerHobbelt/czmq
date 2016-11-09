@@ -128,8 +128,8 @@ czmq_on_android="no"
 AC_CANONICAL_HOST
 
 # Determine whether or not documentation should be built and installed.
-czmq_build_doc="yes"
-czmq_install_man="yes"
+czmq_build_doc="no"
+czmq_install_man="no"
 
 # Check for asciidoc and xmlto and don't build the docs if these are not installed.
 AC_CHECK_PROG(czmq_have_asciidoc, asciidoc, yes, no)
