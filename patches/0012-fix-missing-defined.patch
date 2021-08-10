@@ -1,0 +1,24 @@
+From: Luca Boccassi <luca.boccassi@gmail.com>
+Date: Fri, 2 Sep 2016 11:31:05 +0100
+Subject: Problem: build failure due to missing defined()
+
+Solution: correctly use defined() preprocessor macro to check for
+_ZMALLOC_PEDANTIC in include/czmq_prelude.h to avoid build failure
+if _ZMALLOC_DEBUG is defined.
+---
+ include/czmq_prelude.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/czmq_prelude.h b/include/czmq_prelude.h
+index 336ad5a..63ab449 100644
+--- a/include/czmq_prelude.h
++++ b/include/czmq_prelude.h
+@@ -548,7 +548,7 @@ safe_malloc (size_t size, const char *file, unsigned line)
+ //  results, compile all classes so you see dangling object allocations.
+ //  _ZMALLOC_PEDANTIC does the same thing, but its intention is to propagate
+ //  out of memory condition back up the call stack.
+-#if defined _ZMALLOC_DEBUG || _ZMALLOC_PEDANTIC
++#if defined (_ZMALLOC_DEBUG) || defined (_ZMALLOC_PEDANTIC)
+ #   define zmalloc(size) calloc(1,(size))
+ #else
+ #   define zmalloc(size) safe_malloc((size), __FILE__, __LINE__)

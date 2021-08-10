@@ -10,6 +10,7 @@ AM_CPPFLAGS = \
     -I$(srcdir)/include
 
 project_libs = \
+    ${pthread_LIBS} \
     ${zmq_LIBS}
 
 SUBDIRS =

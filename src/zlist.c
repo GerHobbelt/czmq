@@ -309,6 +309,9 @@ zlist_remove (zlist_t *self, void *item)
         if (self->cursor == node)
             self->cursor = prev;
 
+        if (self->autofree)
+            free (node->item);
+        else
         if (node->free_fn)
             (node->free_fn)(node->item);
 
@@ -332,6 +335,9 @@ zlist_dup (zlist_t *self)
 
     zlist_t *copy = zlist_new ();
     if (copy) {
+        if (self->autofree)
+            zlist_autofree(copy);
+
         node_t *node;
         for (node = self->head; node; node = node->next) {
             if (zlist_append (copy, node->item) == -1) {

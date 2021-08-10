@@ -829,7 +829,7 @@ zsock_vrecv (void *self, const char *picture, va_list argptr)
             char *string = zmsg_popstr (msg);
             uint32_t *uint32_p = va_arg (argptr, uint32_t *);
             if (uint32_p)
-                *uint32_p = string? (uint32_t) atol (string): 0;
+                *uint32_p = string? (uint32_t) strtoul (string, NULL, 10): 0;
             free (string);
         }
         else
@@ -837,7 +837,7 @@ zsock_vrecv (void *self, const char *picture, va_list argptr)
             char *string = zmsg_popstr (msg);
             uint64_t *uint64_p = va_arg (argptr, uint64_t *);
             if (uint64_p)
-                *uint64_p = string? (uint64_t) atoll (string): 0;
+                *uint64_p = string? (uint64_t) strtoull (string, NULL, 10): 0;
             free (string);
         }
         else
@@ -845,7 +845,7 @@ zsock_vrecv (void *self, const char *picture, va_list argptr)
             char *string = zmsg_popstr (msg);
             uint *uint_p = va_arg (argptr, uint *);
             if (uint_p)
-                *uint_p = string? (uint) atol (string): 0;
+                *uint_p = string? (uint) strtoul (string, NULL, 10): 0;
             free (string);
         }
         else
@@ -1243,7 +1243,7 @@ zsock_bsend (void *self, const char *picture, ...)
     unsigned int frame_nbr;
     for (frame_nbr = 0; frame_nbr < nbr_frames; frame_nbr++) {
         bool more = frame_nbr < nbr_frames - 1;
-        zframe_send (&frames [frame_nbr], handle,
+        zframe_send (&frames [frame_nbr], self,
                      ZFRAME_REUSE + (more? ZFRAME_MORE: 0));
     }
     return 0;
@@ -1497,23 +1497,31 @@ zsock_is (void *self)
 
 
 //  --------------------------------------------------------------------------
-//  Probe the supplied reference. If it looks like a zsock_t instance, return
-//  the underlying libzmq socket handle; elsie if it looks like a file
-//  descriptor, return NULL; else if it looks like a libzmq socket handle,
-//  return the supplied value. Takes a polymorphic socket reference.
+//  Probe the supplied 'self' pointer. Takes a polymorphic socket reference.
+//  If self is a zactor_t, zsock_t, or libzmq socket handle, returns the
+//  libzmq socket handle. If self is a valid file descriptor, returns NULL.
+//  Else returns self as-is.
 
 void *
 zsock_resolve (void *self)
 {
     assert (self);
-    if (zsock_is (self))
-        return ((zsock_t *) self)->handle;
-    else
     if (zactor_is (self))
         return zactor_resolve (self);
 
+    if (zsock_is (self))
+        return ((zsock_t *) self)->handle;
+
+    //  Check if we have a valid ZMQ socket by probing the socket type
+    int type;
+    size_t option_len = sizeof (int);
+    if (zmq_getsockopt (self, ZMQ_TYPE, &type, &option_len) == 0)
+        return self;
+
+    //  Check if self is a valid FD or socket FD
+    //  TODO: this code should move to zsys_isfd () as we don't like
+    //  non-portable code outside of that class.
     int sock_type = -1;
-    //  TODO: this code should move to zsys_isfd ()
 #if defined (__WINDOWS__)
     int sock_type_size = sizeof (int);
     int rc = getsockopt (*(SOCKET *) self, SOL_SOCKET, SO_TYPE, (char *) &sock_type, &sock_type_size);
@@ -1580,6 +1588,15 @@ zsock_test (bool verbose)
     free (string);
     zmsg_destroy (&msg);
 
+    //  Test resolve libzmq socket
+    void *zmq_ctx = zmq_ctx_new ();
+    assert (zmq_ctx);
+    void *zmq_sock = zmq_socket (zmq_ctx, ZMQ_PUB);
+    assert (zmq_sock);
+    assert (zsock_resolve (zmq_sock) == zmq_sock);
+    zmq_close (zmq_sock);
+    zmq_ctx_term (zmq_ctx);
+
     //  Test resolve FD
     SOCKET fd = zsock_fd (reader);
     assert (zsock_resolve ((void *) &fd) == NULL);
@@ -1636,7 +1653,9 @@ zsock_test (bool verbose)
     uint8_t  number1 = 123;
     uint16_t number2 = 123 * 123;
     uint32_t number4 = 123 * 123 * 123;
+    uint64_t number4_MAX = UINT32_MAX;
     uint64_t number8 = 123 * 123 * 123 * 123;
+    uint64_t number8_MAX = UINT64_MAX;
 
     zchunk_t *chunk = zchunk_new ("HELLO", 5);
     assert (chunk);
@@ -1652,8 +1671,9 @@ zsock_test (bool verbose)
     char *original = "pointer";
 
     //  Test zsock_recv into each supported type
-    zsock_send (writer, "i1248zsbcfUhp",
-                -12345, number1, number2, number4, number8,
+    zsock_send (writer, "i124488zsbcfUhp",
+                -12345, number1, number2, number4, number4_MAX,
+                number8, number8_MAX,
                 "This is a string", "ABCDE", 5,
                 chunk, frame, uuid, hash, original);
     char *uuid_str = strdup (zuuid_str (uuid));
@@ -1666,16 +1686,19 @@ zsock_test (bool verbose)
     byte *data;
     size_t size;
     char *pointer;
-    number8 = number4 = number2 = number1 = 0;
-    rc = zsock_recv (reader, "i1248zsbcfUhp",
-                     &integer, &number1, &number2, &number4, &number8,
-                     &string, &data, &size, &chunk, &frame, &uuid, &hash, &pointer);
+    number8_MAX = number8 = number4 = number2 = number1 = 0;
+    rc = zsock_recv (reader, "i124488zsbcfUhp",
+                     &integer, &number1, &number2, &number4, &number4_MAX,
+                     &number8, &number8_MAX, &string, &data, &size, &chunk,
+                     &frame, &uuid, &hash, &pointer);
     assert (rc == 0);
     assert (integer == -12345);
     assert (number1 == 123);
     assert (number2 == 123 * 123);
     assert (number4 == 123 * 123 * 123);
+    assert (number4_MAX == UINT32_MAX);
     assert (number8 == 123 * 123 * 123 * 123);
+    assert (number8_MAX == UINT64_MAX);
     assert (streq (string, "This is a string"));
     assert (memcmp (data, "ABCDE", 5) == 0);
     assert (size == 5);
@@ -1695,6 +1718,7 @@ zsock_test (bool verbose)
     zframe_destroy (&frame);
     zchunk_destroy (&chunk);
     zhashx_destroy (&hash);
+    zuuid_destroy (&uuid);
 
     //  Test zsock_recv of short message; this lets us return a failure
     //  with a status code and then nothing else; the receiver will get

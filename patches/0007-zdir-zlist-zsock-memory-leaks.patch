@@ -1,0 +1,66 @@
+From: Luca Boccassi <luca.boccassi@gmail.com>
+Date: Tue, 2 Aug 2016 14:43:46 +0100
+Subject: Problem: valgrind shows a couple of memory leaks
+
+Solution: fix the memory leaks by freeing everything correctly
+---
+ src/zdir.c  | 4 ++++
+ src/zlist.c | 3 +++
+ src/zsock.c | 1 +
+ 3 files changed, 8 insertions(+)
+
+diff --git a/src/zdir.c b/src/zdir.c
+index b328799..fe158b5 100644
+--- a/src/zdir.c
++++ b/src/zdir.c
+@@ -725,6 +725,7 @@ s_zdir_watch_destroy (zdir_watch_t **watch_p)
+         zdir_watch_t *watch = *watch_p;
+ 
+         zloop_destroy (&watch->loop);
++        zhash_destroy (&watch->subs);
+ 
+         free (watch);
+         *watch_p = NULL;
+@@ -832,6 +833,8 @@ s_on_command (zloop_t *loop, zsock_t *reader, void *arg)
+         zsys_info ("zdir_watch: Command received: %s", command);
+ 
+     if (streq (command, "$TERM")) {
++        zstr_free (&command);
++        zmsg_destroy (&msg);
+         return -1;
+     }
+     else
+@@ -887,6 +890,7 @@ s_on_command (zloop_t *loop, zsock_t *reader, void *arg)
+     }
+ 
+     free (command);
++    zmsg_destroy (&msg);
+     return 0;
+ }
+ 
+diff --git a/src/zlist.c b/src/zlist.c
+index 15d8fbd..c61c80f 100644
+--- a/src/zlist.c
++++ b/src/zlist.c
+@@ -309,6 +309,9 @@ zlist_remove (zlist_t *self, void *item)
+         if (self->cursor == node)
+             self->cursor = prev;
+ 
++        if (self->autofree)
++            free (node->item);
++        else
+         if (node->free_fn)
+             (node->free_fn)(node->item);
+ 
+diff --git a/src/zsock.c b/src/zsock.c
+index 0a09dd4..1a6b5c5 100644
+--- a/src/zsock.c
++++ b/src/zsock.c
+@@ -1701,6 +1701,7 @@ zsock_test (bool verbose)
+     zframe_destroy (&frame);
+     zchunk_destroy (&chunk);
+     zhashx_destroy (&hash);
++    zuuid_destroy (&uuid);
+ 
+     //  Test zsock_recv of short message; this lets us return a failure
+     //  with a status code and then nothing else; the receiver will get
