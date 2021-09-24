@@ -182,12 +182,13 @@ s_valid_flags (short flags, bool ipv6)
 {
     return (flags & IFF_UP)             //  Only use interfaces that are running
            && !(flags & IFF_LOOPBACK)   //  Ignore loopback interface
-           && ((ipv6 || (flags & IFF_BROADCAST))  //  Only use interfaces that have BROADCAST
-                   && (!ipv6 || (flags & IFF_MULTICAST))) //  or IPv6 and MULTICAST
+//           && ((ipv6 || (flags & IFF_BROADCAST))  //  Only use interfaces that have BROADCAST
+//                   && (!ipv6 || (flags & IFF_MULTICAST))) //  or IPv6 and MULTICAST
 #   if defined (IFF_SLAVE)
            && !(flags & IFF_SLAVE)      //  Ignore devices that are bonding slaves.
 #   endif
-           && !(flags & IFF_POINTOPOINT); //  Ignore point to point interfaces.
+//           && !(flags & IFF_POINTOPOINT); //  Ignore point to point interfaces.
+;
 }
 #endif
 
