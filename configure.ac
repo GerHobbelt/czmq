@@ -69,6 +69,13 @@ if test "x${CZMQ_GCOV}" == "xyes"; then
     fi
 fi
 
+# Checks for libraries
+AC_CHECK_LIB([pthread], [pthread_create], [
+       have_pthread=yes
+       pthread_LIBS="-pthread"],
+    [AC_MSG_ERROR([pthread is required for this program])])
+AC_SUBST(pthread_LIBS)
+
 PREVIOUS_CFLAGS="${CFLAGS}"
 PREVIOUS_LIBS="${LIBS}"
 
@@ -123,6 +130,7 @@ LIBS="${PREVIOUS_LIBS}"
 czmq_on_mingw32="no"
 czmq_on_cygwin="no"
 czmq_on_android="no"
+czmq_on_gnu="no"
 
 # Host specific checks
 AC_CANONICAL_HOST
@@ -214,6 +222,11 @@ case "${host_os}" in
         CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
         AC_DEFINE(CZMQ_HAVE_CYGWIN, 1, [Have Cygwin])
         czmq_on_cygwin="yes"
+        ;;
+    gnu*)
+        # Define on GNU/Hurd to enable all library features
+        CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
+        AC_DEFINE(CZMQ_HAVE_GNU, 1, [Have GNU/Hurd OS])
         ;;
     *)
         AC_MSG_ERROR([unsupported system: ${host_os}.])

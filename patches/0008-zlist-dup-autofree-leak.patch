@@ -1,0 +1,25 @@
+From: Pawel Weber <pawel.weber@thaumatec.com>
+Date: Mon, 4 Jul 2016 12:47:53 +0200
+Subject: Problem: zlist_dup doesn't create copy autofree list if copied list
+ was autofree
+
+Fix: add checking autofree to zlist_dup and if is set, create autofree
+copy list
+---
+ src/zlist.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/zlist.c b/src/zlist.c
+index c61c80f..9aeeede 100644
+--- a/src/zlist.c
++++ b/src/zlist.c
+@@ -335,6 +335,9 @@ zlist_dup (zlist_t *self)
+ 
+     zlist_t *copy = zlist_new ();
+     if (copy) {
++        if (self->autofree)
++            zlist_autofree(copy);
++
+         node_t *node;
+         for (node = self->head; node; node = node->next) {
+             if (zlist_append (copy, node->item) == -1) {
