@@ -147,8 +147,8 @@ Here's how to build CZMQ from GitHub (building from packages is very similar, yo
     sudo ldconfig
     cd ..
 
-    git clone git://github.com/zeromq/czmq.git
-    cd czmq
+    git clone git://github.com/tanagraspace/opssat-czmq.git
+    cd opssat-czmq
     ./autogen.sh
     ./configure && make check
     sudo make install
