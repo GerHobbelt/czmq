@@ -88,6 +88,8 @@
 
 ## Overview
 
+This is a v3.0.2 fork of **CZMQ** which applies all the patches provided by the [v3.0.2-10 source package in Ubuntu](https://launchpad.net/ubuntu/+source/czmq/3.0.2-10). The patch files are archived in the [patches directory](https://github.com/tanagraspace/opssat-czmq/tree/v3.0.2-10/patches) and the pull request of the applied patches can be found [here](https://github.com/tanagraspace/opssat-czmq/pull/1).
+
 <A name="toc3-16" title="Scope and Goals" />
 
 ### Scope and Goals
