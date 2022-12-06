@@ -13,7 +13,7 @@ plugins {
     id 'com.google.osdetector' version '1.7.0'
 }
 
-wrapper.gradleVersion = '7.0.2'
+wrapper.gradleVersion = '7.5.1'
 
 subprojects {
     apply plugin: 'java'
@@ -28,11 +28,7 @@ subprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        // BINTRAY no more responding.
-        // JFROG announced JCENTER & BINTRAY shutdown in 2021.
-        // - What to do for the JFROG plugin ?
-        // - Is the README still valid ?
-        /* jcenter() */
+        jcenter()
     }
 
     group = 'org.zeromq.czmq'

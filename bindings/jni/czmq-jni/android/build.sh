@@ -7,7 +7,7 @@
 #
 #   Requires these environment variables be set, e.g.:
 #
-#     ANDROID_NDK_ROOT=$HOME/android-ndk-r24
+#     ANDROID_NDK_ROOT=$HOME/android-ndk-r25
 #
 #   Exit if any step fails
 set -e
@@ -42,10 +42,27 @@ if [ -z $BUILD_ARCH ]; then
     exit 1
 fi
 
+case $(uname | tr '[:upper:]' '[:lower:]') in
+  linux*)
+    export HOST_PLATFORM=linux-x86_64
+    ;;
+  darwin*)
+    export HOST_PLATFORM=darwin-x86_64
+    ;;
+  *)
+    echo "Unsupported platform"
+    exit 1
+    ;;
+esac
+
 source ../../../../builds/android/android_build_helper.sh
 
 export MIN_SDK_VERSION=21
 export ANDROID_BUILD_DIR=/tmp/android_build
+
+GRADLEW_OPTS=()
+GRADLEW_OPTS+=("-PbuildPrefix=$BUILD_PREFIX")
+GRADLEW_OPTS+=("--info")
 
 #   Build any dependent libraries
 #   Use a default value assuming that dependent libraries sits alongside this one
@@ -56,7 +73,7 @@ echo "********  Building CZMQ Android native libraries"
 
 #   Ensure we've built JNI interface
 echo "********  Building CZMQ JNI interface & classes"
-( cd ../.. && TERM=dumb ./gradlew build jar -PbuildPrefix=$BUILD_PREFIX --info )
+( cd ../.. && TERM=dumb ./gradlew build jar ${GRADLEW_OPTS[@]} ${CZMQ_GRADLEW_OPTS} )
 
 echo "********  Building CZMQ JNI for Android"
 rm -rf build && mkdir build && cd build
@@ -88,7 +105,7 @@ find ../../build/libs/ -type f -name 'czmq-jni-*.jar' ! -name '*javadoc.jar' ! -
 mkdir -p lib/$TOOLCHAIN_ABI
 cp libczmqjni.so lib/$TOOLCHAIN_ABI
 cp $ANDROID_BUILD_PREFIX/lib/*.so lib/$TOOLCHAIN_ABI
-cp $ANDROID_NDK_ROOT/sources/cxx-stl/llvm-libc++/libs/$TOOLCHAIN_ABI/libc++_shared.so lib/$TOOLCHAIN_ABI
+cp ${ANDROID_STL_ROOT}/${ANDROID_STL} lib/$TOOLCHAIN_ABI
 
 #   Build android jar
 zip -r -m ../czmq-android-$TOOLCHAIN_ABI-4.2.2.jar lib/ org/ META-INF/

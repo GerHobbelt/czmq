@@ -49,6 +49,10 @@ if [ -z "${CI_CONFIG_QUIET-}" ] || [ "${CI_CONFIG_QUIET-}" = yes ] || [ "${CI_CO
     CONFIG_OPTS+=("--quiet")
 fi
 
+GRADLEW_OPTS=()
+GRADLEW_OPTS+=("-PbuildPrefix=$BUILD_PREFIX")
+GRADLEW_OPTS+=("--info")
+
 rm -rf /tmp/tmp-deps
 mkdir -p /tmp/tmp-deps
 
@@ -157,7 +161,7 @@ $CI_TIME make install
 cd ${CZMQ_JNI_ROOT}
 [ -z "$TRAVIS_TAG" ] || IS_RELEASE="-PisRelease"
 
-TERM=dumb $CI_TIME ./gradlew build jar -PbuildPrefix=$BUILD_PREFIX $IS_RELEASE --info
+TERM=dumb $CI_TIME ./gradlew build jar ${GRADLEW_OPTS[@]} ${CZMQ_GRADLEW_OPTS} $IS_RELEASE
 TERM=dumb $CI_TIME ./gradlew clean
 
 ########################################################################
@@ -166,7 +170,7 @@ TERM=dumb $CI_TIME ./gradlew clean
 
 if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$BINDING_OPTS" == "android" ]; then
     pushd ../../builds/android
-        export NDK_VERSION=android-ndk-r24
+        export NDK_VERSION=android-ndk-r25
         export ANDROID_NDK_ROOT="/tmp/${NDK_VERSION}"
 
         case $(uname | tr '[:upper:]' '[:lower:]') in
