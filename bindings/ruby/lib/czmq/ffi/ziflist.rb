@@ -33,8 +33,9 @@ module CZMQ
       # @param ptr [::FFI::Pointer]
       # @return [Proc]
       def self.create_finalizer_for(ptr)
+        ptr_ptr = ::FFI::MemoryPointer.new :pointer
+
         Proc.new do
-          ptr_ptr = ::FFI::MemoryPointer.new :pointer
           ptr_ptr.write_pointer ptr
           ::CZMQ::FFI.ziflist_destroy ptr_ptr
         end
@@ -157,6 +158,16 @@ module CZMQ
         raise DestroyedError unless @ptr
         self_p = @ptr
         result = ::CZMQ::FFI.ziflist_netmask(self_p)
+        result
+      end
+
+      # Return the current interface MAC address as a printable string
+      #
+      # @return [String]
+      def mac()
+        raise DestroyedError unless @ptr
+        self_p = @ptr
+        result = ::CZMQ::FFI.ziflist_mac(self_p)
         result
       end
 
